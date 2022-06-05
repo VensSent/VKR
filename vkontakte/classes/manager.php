@@ -24,10 +24,11 @@
  */
 
 defined('MOODLE_INTERNAL') || die;
+
 require_once($CFG->libdir . '/filelib.php');
 
 /**
- * VKontakte helper manager class
+ * VKontakte module manager class
  *
  * @author  Ivan Bulavin
  * @copyright 2022 Ivan Bulavin
@@ -36,117 +37,27 @@ require_once($CFG->libdir . '/filelib.php');
 class message_vkontakte_manager
 {
 
-	//Base URL для Telegram Bot API
-	const TELEGRAM_BOT_API_BASE_URL = 'https://api.vk.com/method/messages.send';
-
-	// Сколько последних сообщений брать при запросе getUpdates к боту.
-	//
-	// Процесс связи аккаунтов в Moodle и Telegram состоит из трех шагов:
-	//
-	//	1.	Пользователь нажал на линк:
-	//		https://t.me/bot_username?start=<moodle_session_id>
-	//
-	//	2.	Мы выполнили запрос к боту:
-	//		https://api.telegram.org/bot<bot_token>/getUpdates?offset=-<TELEGRAM_BOT_GET_LAST_UPDATES>
-	//
-	//	3.	И нашли в присланном куске истории сообщений текст, переданный боту в п.1:
-	//		/start <moodle_session_id>
-	//
-	// Фактически, число TELEGRAM_BOT_GET_LAST_UPDATES - это максимальное количество кликов на линк
-	// "Связать мои аккаунты Moodle и Telegram" разными пользователями за время,
-	// прошедшее между таким кликом определенного пользователя, и нажатием им же на кнопку "Сохранить",
-	// для выполнения успешной связи аккаунтов этого пользователя в Moodle и Telegram
-	// (т.е., для успеха поиска текста "/start <moodle_session_id>" в полученном "куске" истории сообщений бота).
-	//
-	const TELEGRAM_BOT_GET_LAST_UPDATES = 50;
-
 	private $curl;
 
-	/**
-	 * Конструктор.
-	 * Инициализируем все необходимые данные для быстрого доступа к ним во время работы.
-	 */
-	public function __construct()
-	{
-		$this->curl = new curl();
-	}
-
-	/**
-	 * Посылаем боту команду getUpdates?offset=-N,
-	 * затем ищем в полученных сообщениях текст "/start <текущая сессия пользователя в Moodle>"
-	 *
-	 * @return boolean Success
-	 */
-	public function get_chatid()
-	{
-		global $USER;
-
-		//Посылаем боту через Telgram Bot API команду getUpdates с отрицательным offset.
-		//Т.е. запрашиваем у бота TELEGRAM_BOT_GET_LAST_UPDATES последних сообщений.
-		//При этом все остальные сообщения, присланные боту,
-		//автоматически удаляются на стороне Telegram (потому, что мы используем параметр ?offset=).
-		$response = $this->send_to_bot_api('getUpdates?offset=-' . self::TELEGRAM_BOT_GET_LAST_UPDATES);
-		if (!$response->ok) {
-			//Если Telegram возвращает ошибку
-			return false;
-		}
-
-		$userid = $USER->id;
-
-		//'/start <текущая сессия пользователя в Moodle>'
-		$search_text = '/start ' . sesskey();
-
-		$results = $response->result;
-		//Перебираем все полученные сообщения (TELEGRAM_BOT_GET_LAST_UPDATES последних сообщений, отправленных боту).
-		foreach ($results as $result) {
-			//Если нашли текст '/start <текущая сессия пользователя в Moodle>'
-			if (isset($result->message) && isset($result->message->text) && ($result->message->text == $search_text)) {
-				//Сохраняем chat_id чата пользователя, от которого это сообщение пришло (это - текущий пользователь Moodle).
-				set_user_preference('message_processor_telegram_chatid', $result->message->chat->id, $userid);
-				//Также сохраняем текст "Сообщение от:" (отображаемое в Telegram) в его локализации.
-				set_user_preference('message_processor_telegram_localized_messagefrom', get_string('messagefrom', 'message_vkontakte'), $userid);
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/**
-	 * Посылаем боту команду sendMessage с текстом сообщения.
-	 *
-	 * @param string $message : текст, который необходимо передать.
-	 * @param string $vk_user_id : chat_id чата получателя сообщения с Telegram-ботом.
-	 */
+	// Посылаем сообщение $message пользователю $vk_user_id от сообщества с токеном $vk_group_token
+	// с помощью запроса к API VKontakte.
 	public function send_message($message, $vk_user_id, $vk_group_token)
 	{
-		error_log('+++111:'.$message);
-		error_log('+++222:'.$vk_user_id);
-		error_log('+++333:'.$vk_group_token);
+		if ($this->curl == null) {
+			$this->curl = new curl();
+		}
 
-		$response = $this->curl->post(self::TELEGRAM_BOT_API_BASE_URL,
-		[
-			'user_id' => $vk_user_id,
-			'random_id' => 0,
-			'message' => $message,
-			'access_token' => $vk_group_token,
-			'v' => '5.131'
-		]
+		$response = $this->curl->post(
+			'https://api.vk.com/method/messages.send',
+			[
+				'user_id' => $vk_user_id,
+				'random_id' => 0,
+				'message' => $message,
+				'access_token' => $vk_group_token,
+				'v' => '5.131'
+			]
 		);
-		error_log($response);
-		return true;
-		//return (!empty($response) && isset($response->ok) && ($response->ok == true));
-	}
-
-	/**
-	 * Отправляет команду через Telegram Bot API, и возвращает JSON-decoded результат.
-	 *
-	 * @param string $command : команда Telegram Bot API
-	 * @param array $params : параметры команды
-	 * @return object The JSON-decoded object.
-	 */
-	private function send_to_bot_api($command, $params = null)
-	{
-		global $CFG;
-		return json_decode($this->curl->post(self::TELEGRAM_BOT_API_BASE_URL, $params));
+		$json_result = json_decode($response);
+		return !empty($json_result) && isset($json_result->response);
 	}
 }

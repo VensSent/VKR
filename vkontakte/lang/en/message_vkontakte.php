@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Strings for component 'message_vkontakte', language 'en'
+ * Strings for component "message_vkontakte"
  *
  * @package message_vkontakte
  * @author  Ivan Bulavin
@@ -25,50 +25,71 @@
 
 $string['pluginname'] = 'VKontakte';
 
-$string['linkaccountsinfo'] = '
-To receive messages from Moodle in your Telegram, you need to link your Moodle account to your Telegram account.
-To do this, follow these steps:
-<ol>
-<li>Click on the link:<br>[connect_url]</li>
-<li>In the Telegram client that opens, click "Start".</li>
-<li>Go back to this window and click "Save changes".</li>
-</ol>
-After that, you can unlink your Moodle account from your Telegram account, if necessary.
+$string['adminsetuptext'] = '
+To configure the module of sending messages through VKontakte, you need to specify the <b>Community ID</b> in VKontakte, on behalf of which users will receive messages sent to them in Moodle,
+and the <b>Token</b> of this community.
+<br>
+If the community has not yet been created, for instructions on creating and setting up the community, please visit <a href="https://pechenek.net/social-networks/vk/api-vk-poluchaem-klyuch-dostupa-token-gruppy/" target="_blank">this page</a>.
 ';
-
-$string['linkaccountslinktext'] = 'Link my Moodle and Telegram accounts';
-$string['accountislinked'] = 'Link my Moodle and Telegram accounts';
-
-$string['unlinkaccountsinfo'] = '
-<b>Your Moodle and Telegram accounts are linked. Messages are forwarded to your Telegram.</b><br>
-In order to unlink your Moodle account from your Telegram account, uncheck the box and click "Save changes".
-';
-
-$string['messagefrom'] = 'Moodle. Message from ';
 
 $string['vkgroupid'] = 'Community ID in VKontakte';
 $string['configvkgroupid'] = '';
 
-$string['vkgrouptoken'] = 'Токен сообщества во ВКонтакте';
+$string['vkgrouptoken'] = 'Community Token in VKontakte';
 $string['configvkgrouptoken'] = '';
 
+$string['vkmessagesallowed']='<b>Receiving messages from Moodle in VKontakte is enabled.</b><br>To disable receiving messages, click the \"Disable Notifications\" button below, and then click the \"Save changes\" button.';
 
-$string['pluginnotconfigured'] = 'The Telegram messaging module is not configured by the administrator.';
+$string['vkmessagesnotallowed']='Receiving messages from Moodle in VKontakte is disabled.<br>To turn it on, click the \"Receive Notifications\" button below, and then click the \"Save changes\" button.';
 
-$string['adminsetuptext'] = '
-To configure the VKontakte messaging module, you need to specify the <b>URL</b> and <b>token</b> of the Telegram bot that will do the messaging.
+$string['vkwidgetform'] = '
+<div id="vk_info"></div>
 <br>
-If such a bot has not yet been created, follow these steps to create one:
-<ol>
-<li>In the Telegram client, find the bot named <b>"BotFather"</b> and click its <b>"Start"</b> button.</li>
-<li>Send this bot a command: <b>/newbot</b></li>
-<li>Enter and send the bot any name of your new bot.</li>
-<li>Enter and send the username of your new bot to the bot. You must come up with a username that is free to register.</li>
-<li>After BotFather displays a message saying your bot was successfully created,
-copy the link to your bot (it\'s after <b>"You will find it at"</b>), and paste it into the <b>"Telegram bot URL"</b> field below,
-then copy your bot\'s token (it\'s after <b>"Use this token to access the HTTP API:"</b>),
-and paste it into the <b>"Telegram bot token"</b> field below.</li>
-</ol>
-The settings are complete.<br>Now, to save the module settings, click the "Save changes" button.
-<hr>
+<input type="hidden" name="vk_user_id" id="vk_user_id" value="_vk_user_id_">
+<div id="vkwidget"></div>
+<div id="vk_api_transport"></div>
+
+<script type="text/javascript">
+var vkMessagesAllowedText = "_vk_messages_allowed_text_";
+var vkMessagesNotAllowedText = "_vk_messages_not_allowed_text_";
+var objVKUserId = document.getElementById("vk_user_id");
+var objVKInfo = document.getElementById("vk_info");
+var openApiScript;
+if(openApiScript == undefined){
+	setTimeout(function() {
+		openApiScript = document.createElement("script");
+		openApiScript.type = "text/javascript";
+		openApiScript.src = "https://vk.com/js/api/openapi.js?169";
+		openApiScript.async = true;
+		document.getElementById("vk_api_transport").appendChild(openApiScript);
+	}, 0);
+} else {
+	addVKWidget(false);
+}
+window.vkAsyncInit = function() {
+	addVKWidget(true);
+};
+var setVKInfo = function() {
+	objVKInfo.innerHTML = (objVKUserId.value == "") ? vkMessagesNotAllowedText : vkMessagesAllowedText;
+};
+var addVKWidget = function(needSubscribe) {
+
+	setVKInfo();
+
+	VK.Widgets.AllowMessagesFromCommunity("vkwidget", {height: 30}, _vk_group_id_);
+	if(!needSubscribe){
+		return;
+	}
+	VK.Observer.subscribe("widgets.allowMessagesFromCommunity.allowed", function f(userId) {
+		objVKUserId.value = userId;
+		//setVKInfo();
+	});
+	VK.Observer.subscribe("widgets.allowMessagesFromCommunity.denied", function f(userId) {
+		objVKUserId.value = "";
+		//setVKInfo();
+	});
+};
+</script>
 ';
+
+$string['notconfiguredbyadmin'] = 'Sorry, the module for sending messages to "VKontakte" is not configured by the administrator.';

@@ -27,13 +27,12 @@ defined('MOODLE_INTERNAL') || die();
 
 /**
  * Upgrade code for the VKontakte message processor
- *
- * @param int $oldversion The version that we are upgrading from
  */
 function xmldb_message_vkontakte_upgrade($oldversion)
 {
 	global $DB;
 
+	// Версия плагина '2022052800.00' должна быть указана также в version.php
 	if ($oldversion < 2022052800.00) {
 		$processor = new stdClass();
 		$processor->name  = 'vkontakte';

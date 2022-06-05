@@ -25,13 +25,10 @@
 
 defined('MOODLE_INTERNAL') || die;
 
+// Наполнение формы настройки плагина для администратора.
 if ($ADMIN->fulltree) {
 
-	$settings->add(new admin_setting_heading(
-		'setup',
-		'',
-		get_string('adminsetuptext', 'message_vkontakte')
-	));
+	$settings->add(new admin_setting_heading('setuptext', '', get_string('adminsetuptext', 'message_vkontakte')));
 
 	$settings->add(new admin_setting_configtext(
 		'vkgroupid',
@@ -48,5 +45,4 @@ if ($ADMIN->fulltree) {
 		'',
 		PARAM_TEXT
 	));
-
 }

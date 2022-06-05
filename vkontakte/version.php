@@ -23,6 +23,7 @@
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+// Версия плагина '2022052800.00' должна быть указана также в upgrade.php
 $plugin->version   = 2022052800.00;			// The current plugin version (Date: YYYYMMDDXX)
 $plugin->requires  = 2020061514.00;			// Requires this Moodle version
 $plugin->component = 'message_vkontakte';	// Full name of the plugin (used for diagnostics)
