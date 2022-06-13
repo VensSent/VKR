@@ -74,13 +74,21 @@ class message_output_vkontakte extends message_output
 			return true;
 		}
 
+		// Различаем уведомления и сообщения
+		if ($eventdata->notification == 1) {
+			// Уведомление
+			$message = '';
+		} else {
+			// Сообщение
+			// От кого (Имя Фамилия)
+			$message = fullname($eventdata->userfrom) . ': ';
+		}
+
 		// Отправляем сообщение адресату с помощью API VK.
 		return $this->manager->send_message(
-			fullname($eventdata->userfrom) .	// От кого (Имя Фамилия)
-			': ' .								// :
-			$eventdata->smallmessage,			// Текст сообщения
-			$to_vk_userid,						// Кому (used_id адресата во ВКонтакте)
-			trim($CFG->vkgrouptoken)			// От группы во ВКонтакте с токеном vkgrouptoken
+			$message . $eventdata->smallmessage,	// Текст сообщения
+			$to_vk_userid,							// Кому (used_id адресата во ВКонтакте)
+			trim($CFG->vkgrouptoken)				// От группы во ВКонтакте с токеном vkgrouptoken
 		);
 	}
 
